@@ -50,18 +50,7 @@ vlr-scraper/
 pip install flask pandas requests beautifulsoup4
 ```
 
-### 2. Scrape data
-
-Run the scrapers once to generate the data files. Use `--year` to target a specific season (2023–2026 supports full stats; pre-2023 supports players only).
-
-```bash
-python scraper.py --year 2026        # → players_2026.csv, player_events_2026.json
-python scrape_teams.py --year 2026   # → team_stats_2026.json, team_matches_2026.json
-```
-
-The full pipeline takes a few minutes depending on how many events are live; progress is printed per event.
-
-### 3. Run the server
+### 2. Run the server
 
 ```bash
 python app.py
