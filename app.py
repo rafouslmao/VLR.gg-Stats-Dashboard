@@ -60,7 +60,7 @@ def _is_intl_event(name):
     if "emea" in n:
         return yr_int >= 23
     if "china" in n:
-        return yr_int >= 23
+        return yr_int >= 23 and n.startswith("vct ")
     if "pacific" in n and "asia-pacific" not in n:
         return yr_int >= 23
     return False
@@ -971,7 +971,9 @@ def _compute_agents(tier_filter="", region_filter="", year_filter="", event_filt
 
     agg         = defaultdict(_blank_stat_bucket)
     player_agg  = defaultdict(lambda: defaultdict(_blank_stat_bucket))
-    player_team = {}  # name → most recently seen team name
+    player_team = {}   # name → most recently seen team name
+    player_tier = {}   # name → highest tier seen across their events
+    _tier_rank  = {"Tier 1": 3, "Game Changers": 2, "Tier 2": 1}
 
     for team_id, matches in idx.items():
         this_team_region = team_region.get(team_id, "")
@@ -979,6 +981,7 @@ def _compute_agents(tier_filter="", region_filter="", year_filter="", event_filt
         for match in matches:
             if not _match_passes_filters(match, this_team_region, tier_filter, region_filter, year_filter, event_filter):
                 continue
+            ev_tier = _event_tier(match.get("event", ""))
             for mp in match.get("maps", []):
                 map_result = mp.get("result", "")
                 for p in mp.get("players_us", []):
@@ -992,6 +995,8 @@ def _compute_agents(tier_filter="", region_filter="", year_filter="", event_filt
                     _fill_bucket(player_agg[agent][name], p, map_result)
                     if tname:
                         player_team[name] = tname
+                    if ev_tier and _tier_rank.get(ev_tier, 0) > _tier_rank.get(player_tier.get(name, ""), 0):
+                        player_tier[name] = ev_tier
 
     result = []
     for agent_name, d in agg.items():
@@ -1001,6 +1006,7 @@ def _compute_agents(tier_filter="", region_filter="", year_filter="", event_filt
             ps = _bucket_to_stats(pd)
             ps["name"] = pname
             ps["team"] = player_team.get(pname, "")
+            ps["tier"] = player_tier.get(pname, "")
             players.append(ps)
         players.sort(key=lambda p: p["picks"], reverse=True)
         result.append({"agent": agent_name, "players": players, **stats})

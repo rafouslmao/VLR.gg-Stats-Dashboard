@@ -757,7 +757,12 @@
 <!-- ════════════════════ AGENTS VIEW ════════════════════ -->
 <div id="agentsView" style="display:none">
   <div class="filters">
-    <span style="background:#fbbf2415;color:#fbbf24;border:1px solid #fbbf2430;border-radius:7px;padding:7px 14px;font-size:13px;font-weight:600;white-space:nowrap">Tier 1</span>
+    <select id="agentTierFilter">
+      <option value="Tier 1">Tier 1</option>
+      <option value="Tier 2">Tier 2</option>
+      <option value="Game Changers">Game Changers</option>
+      <option value="">All tiers</option>
+    </select>
     <select id="agentRegionFilter"><option value="">All regions</option></select>
     <select class="ev-sel-global" style="max-width:220px"><option value="">All events</option></select>
     <select id="agentRoleFilter">
@@ -1753,7 +1758,7 @@ const ROLE_CLS = {
 
 const agentState = {
   sort: "picks", dir: "desc",
-  role: "", tier: "", region: "",
+  role: "", tier: "Tier 1", region: "",
   loaded: false,
   all: [],
   selectedAgent: "",
@@ -1775,6 +1780,9 @@ document.getElementById("agentsHeaderRow").querySelectorAll("th[data-akey]").for
 
 document.getElementById("agentRoleFilter").addEventListener("change", e => {
   agentState.role = e.target.value; renderAgentsTable();
+});
+document.getElementById("agentTierFilter").addEventListener("change", e => {
+  agentState.tier = e.target.value; agentState.loaded = false; fetchAgents();
 });
 document.getElementById("agentRegionFilter").addEventListener("change", e => {
   agentState.region = e.target.value; agentState.loaded = false; fetchAgents();
@@ -1972,8 +1980,15 @@ function _agentPlayerRows(players) {
       : acs >= 170 ? "#f9fafb" : acs >= 145 ? "#fb923c" : "#f87171";
     const wPct = p.winpct ?? 0;
     const teamBadge = p.team ? `<span style="background:#1a2942;color:#93c5fd;border:1px solid #1d4ed840;border-radius:4px;padding:1px 5px;font-size:10px;font-weight:500;margin-left:5px;white-space:nowrap">${esc(p.team)}</span>` : "";
+    const tierClr = p.tier === "Tier 1" ? {bg:"#14532d",fg:"#4ade80",bd:"#16a34a40"}
+                  : p.tier === "Tier 2" ? {bg:"#1e3a5f",fg:"#93c5fd",bd:"#3b82f640"}
+                  : p.tier === "Game Changers" ? {bg:"#4a1d96",fg:"#c4b5fd",bd:"#7c3aed40"}
+                  : null;
+    const tierBadge = (tierClr && agentState.tier === "")
+      ? `<span style="background:${tierClr.bg};color:${tierClr.fg};border:1px solid ${tierClr.bd};border-radius:4px;padding:1px 5px;font-size:10px;font-weight:600;margin-left:5px;white-space:nowrap">${esc(p.tier)}</span>`
+      : "";
     return `<tr>
-      <td data-name="${esc(p.name)}" style="color:#d1d5db;font-weight:600;cursor:pointer">${esc(p.name)}${teamBadge}</td>
+      <td data-name="${esc(p.name)}" style="color:#d1d5db;font-weight:600;cursor:pointer">${esc(p.name)}${teamBadge}${tierBadge}</td>
       <td class="num">${p.picks}</td>
       <td class="num">${p.wins}–${p.losses}</td>
       <td class="${winPctClass(wPct)}">${wPct.toFixed(1)}%</td>
