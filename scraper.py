@@ -62,14 +62,30 @@ def extract_region(title):
 
 
 def classify_tier(title):
-    t = title.lower()
-    # Check content keywords first — "VCT 2023: CN Challengers" must be T2,
-    # not T1, even though it starts with "vct ".
-    if "game changers" in t:               return "Game Changers"
-    if "challengers" in t:                 return "Tier 2"
-    if t.startswith("valorant masters"):   return "Tier 1"
-    if t.startswith("valorant champions"): return "Tier 1"
-    if t.startswith("vct "):               return "Tier 1"
+    t = title.strip().lower()
+    # T2 regardless of umbrella — must check before T1 regions
+    if re.search(r"challengers|ascension|last.{0,5}chance", t):
+        return "Tier 2"
+    if "game changers" in t:
+        return "Game Changers"
+    if re.search(r"off.{0,3}season|show.?match", t):
+        return None
+    # 2025+ franchise era: "VCT YYYY: Region Stage"
+    if t.startswith("vct "):
+        return "Tier 1"
+    # 2023-2024 franchise era: "Champions Tour YYYY: Region Stage"
+    if t.startswith("champions tour "):
+        yr = re.search(r"20(\d{2})", t)
+        if yr and int(yr.group(1)) >= 23:
+            if any(r in t for r in ("americas", "emea", "pacific")):
+                return "Tier 1"
+            if "china" in t and "national" not in t:
+                return "Tier 1"
+            if "lock" in t or "masters" in t:
+                return "Tier 1"
+    # Standalone international events (all years)
+    if "valorant champions" in t or "valorant masters" in t:
+        return "Tier 1"
     return None
 
 
@@ -164,10 +180,12 @@ def discover_events(year="2026", max_pages=50):
 
     # ── 3. Named year pages — authoritative, no year-in-title requirement ────
     named_pages = [
-        (f"/vct-{year}",  "Tier 1",  True),   # VCT T1 events for the year
-        ("/vct",          None,       False),   # current VCT season (year filter)
-        (f"/vcl-{year}",  "Tier 2",  True),    # VCL Challengers for the year
-        ("/vcl",          "Tier 2",  False),   # current VCL season (year filter)
+        # For /vct-{year}: classify_tier is still used; events that return None
+        # (e.g. "China National Tournament") are skipped rather than forced to T1.
+        (f"/vct-{year}",  None,      True),
+        ("/vct",          None,      False),
+        (f"/vcl-{year}",  "Tier 2",  True),
+        ("/vcl",          "Tier 2",  False),
     ]
     for path, force_tier, is_year_page in named_pages:
         try:

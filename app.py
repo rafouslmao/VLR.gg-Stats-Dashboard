@@ -10,6 +10,7 @@ import io
 import csv as csv_mod
 import glob
 from collections import defaultdict
+from scraper import classify_tier
 
 app = Flask(__name__)
 DEFAULT_PAGE_SIZE = 100
@@ -31,39 +32,7 @@ TEAM_MERGES     = {"ULF Esports": "Eternal Fire"}  # source_name → target_name
 _team_id_merges = {}  # source_id → target_id (populated by load_team_stats)
 
 def _is_intl_event(name):
-    """True if the event is an international/Tier-1-level event by the user's definition:
-    Champions, Masters (with a city), LOCK//IN, VCT regional leagues (Americas/EMEA/China/Pacific).
-    Challengers circuits, regional Masters, off-season, etc. → False (Tier 2).
-    """
-    n = name.lower()
-    if re.search(r"off.{0,2}season", n):
-        return False
-    if re.search(r"show.?match", n):
-        return False
-    if "game changers" in n:
-        return False
-    if "valorant champions" in n and "tour" not in n:
-        return True
-    if "masters" in n:
-        return not bool(re.search(r"masters\s*$", n))  # city follows → intl; ends with Masters → regional
-    if "lock" in n:
-        return True
-    # Sub-circuits under the VCT umbrella are always T2 regardless of region/year
-    if re.search(r"challengers|ascension|last.{0,5}chance", n):
-        return False
-    # VCT regional leagues only became international franchises from 2023 onward.
-    # Pre-2023 events with these keywords are regional circuits → Tier 2.
-    yr = re.search(r'20(\d{2})', n)
-    yr_int = int(yr.group(1)) if yr else 0
-    if "americas" in n:
-        return yr_int >= 23
-    if "emea" in n:
-        return yr_int >= 23
-    if "china" in n:
-        return yr_int >= 23 and n.startswith("vct ")
-    if "pacific" in n and "asia-pacific" not in n:
-        return yr_int >= 23
-    return False
+    return classify_tier(name) == "Tier 1"
 
 def _true_tier_map(year=None):
     """Map pid(str) → corrected tier for the given year (or all-time if year=None)."""
@@ -928,14 +897,7 @@ def _bucket_to_stats(d):
     }
 
 def _event_tier(title):
-    t = title.lower()
-    if t.startswith("vct ") or t.startswith("valorant masters") or t.startswith("valorant champions"):
-        return "Tier 1"
-    if t.startswith("challengers "):
-        return "Tier 2"
-    if t.startswith("game changers "):
-        return "Game Changers"
-    return "Other"
+    return classify_tier(title) or "Other"
 
 _REGION_PATTERNS = [
     ("International", ["valorant masters", "valorant champions", "lock//in", "lock/in"]),
