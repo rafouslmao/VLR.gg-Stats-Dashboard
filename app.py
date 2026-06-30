@@ -2011,8 +2011,8 @@ def api_schedule():
 _ROUND_ORDER = {
     "seeding": 0,
     "ur1": 1,  "ur2": 2,  "ur3": 3,  "ur4": 4,
-    "w1":  1,  "w2":  2,  "w3":  3,  "w4":  4,
-    "r1":  1,  "r2":  2,  "r3":  3,  "r4":  4,
+    "w1":  1,  "w2":  2,  "w3":  3,  "w4":  4,  "w5":  5,  "w6":  6,  "w7":  7,  "w8":  8,
+    "r1":  1,  "r2":  2,  "r3":  3,  "r4":  4,  "r5":  5,  "r6":  6,  "r7":  7,  "r8":  8,
     "mr1": 5,  "mr2": 6,  "mr3": 7,  "mr4": 8, "mbf": 9,
     "ubqf": 10, "ubsf": 11, "ubf": 12,
     "lr1": 13, "lr2": 14, "lr3": 15, "lr4": 16, "lr5": 17,
@@ -2022,8 +2022,10 @@ _ROUND_ORDER = {
 _ROUND_LABELS = {
     "seeding": "Seeding",
     "ur1": "Upper Rd 1", "ur2": "Upper Rd 2", "ur3": "Upper Rd 3", "ur4": "Upper Rd 4",
-    "w1":  "Week 1",     "w2":  "Week 2",     "w3":  "Week 3",     "w4":  "Week 4",
-    "r1":  "Round 1",    "r2":  "Round 2",    "r3":  "Round 3",    "r4":  "Round 4",
+    "w1":  "Week 1",  "w2":  "Week 2",  "w3":  "Week 3",  "w4":  "Week 4",
+    "w5":  "Week 5",  "w6":  "Week 6",  "w7":  "Week 7",  "w8":  "Week 8",
+    "r1":  "Round 1", "r2":  "Round 2", "r3":  "Round 3", "r4":  "Round 4",
+    "r5":  "Round 5", "r6":  "Round 6", "r7":  "Round 7", "r8":  "Round 8",
     "mr1": "Mid Rd 1",  "mr2": "Mid Rd 2",  "mr3": "Mid Rd 3",  "mr4": "Mid Rd 4",
     "mbf": "Mid BF",
     "ubqf": "UB Quarters", "ubsf": "UB Semis", "ubf": "UB Final",
@@ -2034,11 +2036,13 @@ _ROUND_LABELS = {
 }
 _PHASE_OF = {
     "seeding": "Group Stage",
-    "ur1": "Group Stage", "ur2": "Group Stage", "ur3": "Group Stage", "ur4": "Group Stage",
+    "ur1": "Upper Bracket", "ur2": "Upper Bracket", "ur3": "Upper Bracket", "ur4": "Upper Bracket",
     "w1":  "Group Stage", "w2":  "Group Stage", "w3":  "Group Stage", "w4":  "Group Stage",
+    "w5":  "Group Stage", "w6":  "Group Stage", "w7":  "Group Stage", "w8":  "Group Stage",
     "r1":  "Group Stage", "r2":  "Group Stage", "r3":  "Group Stage", "r4":  "Group Stage",
-    "mr1": "Group Stage", "mr2": "Group Stage", "mr3": "Group Stage", "mr4": "Group Stage",
-    "mbf": "Group Stage",
+    "r5":  "Group Stage", "r6":  "Group Stage", "r7":  "Group Stage", "r8":  "Group Stage",
+    "mr1": "Middle Bracket", "mr2": "Middle Bracket", "mr3": "Middle Bracket", "mr4": "Middle Bracket",
+    "mbf": "Middle Bracket",
     "ubqf": "Upper Bracket", "ubsf": "Upper Bracket", "ubf": "Upper Bracket",
     "lr1": "Lower Bracket",  "lr2": "Lower Bracket",  "lr3": "Lower Bracket",
     "lr4": "Lower Bracket",  "lr5": "Lower Bracket",  "lbf": "Lower Bracket",
@@ -2178,7 +2182,7 @@ def api_events():
             phases = defaultdict(list)
             for m in sorted_matches:
                 phases[m["phase"]].append(m)
-            phase_order = ["Group Stage", "Upper Bracket", "Lower Bracket", "Grand Final", "Other"]
+            phase_order = ["Group Stage", "Upper Bracket", "Middle Bracket", "Lower Bracket", "Grand Final", "Other"]
             bracket = [
                 {"phase": ph, "matches": phases[ph]}
                 for ph in phase_order if ph in phases
