@@ -24,6 +24,10 @@
 
 <div align="center">
 
+<img src="docs/demo.gif" alt="Dashboard demo" width="100%" />
+
+<br/><br/>
+
 **Players Leaderboard** — rounds-weighted aggregate stats across an entire season
 
 <img src="docs/screenshot_players.png" alt="Players leaderboard" width="100%" />
