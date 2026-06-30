@@ -19,9 +19,37 @@ import time
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-HEADERS   = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-BASE      = "https://www.vlr.gg"
+HEADERS    = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+BASE       = "https://www.vlr.gg"
 MIN_ROUNDS = 100   # minimum rounds for leaderboard entry
+
+# ── HTTP helpers ───────────────────────────────────────────────────────────────
+
+# Delay between requests (seconds). Increase if VLR.gg starts rate-limiting you.
+REQUEST_DELAY = 0.4
+
+def _fetch(url, retries=3, backoff=1.5, timeout=15):
+    """GET a URL with automatic retry and exponential backoff.
+
+    Retries on connection errors and HTTP 429 / 5xx responses.
+    Raises the last exception if all retries are exhausted.
+    """
+    last_exc = None
+    for attempt in range(retries):
+        try:
+            r = requests.get(url, headers=HEADERS, timeout=timeout)
+            if r.status_code in (429, 500, 502, 503, 504):
+                wait = backoff * (2 ** attempt)
+                print(f"  [warn] HTTP {r.status_code} for {url} — retrying in {wait:.1f}s")
+                time.sleep(wait)
+                continue
+            return r
+        except requests.exceptions.RequestException as exc:
+            last_exc = exc
+            wait = backoff * (2 ** attempt)
+            print(f"  [warn] {exc} — retrying in {wait:.1f}s ({attempt + 1}/{retries})")
+            time.sleep(wait)
+    raise last_exc
 
 REGION_PATTERNS = [
     ("International", ["valorant masters", "valorant champions", "lock//in", "lock/in"]),
@@ -154,7 +182,7 @@ def discover_events(year="2026", max_pages=50):
         for page in range(1, max_pages + 1):
             url = base_url if page == 1 else f"{base_url}&page={page}"
             try:
-                r = requests.get(url, headers=HEADERS, timeout=15)
+                r = _fetch(url)
             except Exception:
                 break
             soup  = BeautifulSoup(r.text, "html.parser")
@@ -173,7 +201,7 @@ def discover_events(year="2026", max_pages=50):
                 if page_years and max(page_years) < year_int:
                     break
             _scrape_items(items)
-            time.sleep(0.4)
+            time.sleep(REQUEST_DELAY)
 
     # ── 1. General events page — catches T1 and any T2/GC not on named pages ──
     _paginate(f"{BASE}/events?")
@@ -193,7 +221,7 @@ def discover_events(year="2026", max_pages=50):
     ]
     for path, force_tier, is_year_page in named_pages:
         try:
-            r = requests.get(f"{BASE}{path}", headers=HEADERS, timeout=15)
+            r = _fetch(f"{BASE}{path}")
             soup  = BeautifulSoup(r.text, "html.parser")
             items = soup.select("a.event-item")
             # Year-specific pages: trust all entries; current-season pages: year filter
@@ -315,7 +343,7 @@ def _merge_stage_rows(rows):
 def get_event_player_stats(event):
     url = f"{BASE}/event/stats/{event['id']}/{event['slug']}"
     try:
-        r = requests.get(url, headers=HEADERS, timeout=15)
+        r = _fetch(url)
     except Exception:
         return []
     soup         = BeautifulSoup(r.text, "html.parser")
@@ -335,7 +363,7 @@ def get_event_player_stats(event):
     per_stage = []
     for sid in good_ids:
         try:
-            r2 = requests.get(f"{url}?series_id={sid}", headers=HEADERS, timeout=15)
+            r2 = _fetch(f"{url}?series_id={sid}")
             per_stage.extend(_parse_stats_table(BeautifulSoup(r2.text, "html.parser"), event))
             time.sleep(0.3)
         except Exception:
@@ -425,7 +453,7 @@ def aggregate_players(rows):
 def get_event_match_list(event):
     url = f"{BASE}/event/matches/{event['id']}/{event['slug']}?series_id=all"
     try:
-        r = requests.get(url, headers=HEADERS, timeout=15)
+        r = _fetch(url)
     except Exception:
         return []
     soup    = BeautifulSoup(r.text, "html.parser")
@@ -545,7 +573,7 @@ def _parse_map_players(game_div):
 
 def parse_match_detail(match_url):
     try:
-        r = requests.get(match_url, headers=HEADERS, timeout=15)
+        r = _fetch(match_url)
     except Exception:
         return None
     soup    = BeautifulSoup(r.text, "html.parser")
@@ -982,7 +1010,7 @@ def scrape_upcoming(max_pages=5):
     for page in range(1, max_pages + 1):
         url = BASE + "/matches" if page == 1 else f"{BASE}/matches?page={page}"
         try:
-            r = requests.get(url, headers=HEADERS, timeout=15)
+            r = _fetch(url)
         except Exception:
             break
         soup  = BeautifulSoup(r.text, "html.parser")
@@ -1050,6 +1078,7 @@ def main():
 
     year = args.year
     os.makedirs("data", exist_ok=True)
+    t_start = time.time()
 
     # Load previously cached raw matches for incremental scraping
     raw_path = f"data/raw_matches_{year}.json"
@@ -1092,6 +1121,10 @@ def main():
         with open(raw_path, "w", encoding="utf-8") as f:
             json.dump(all_matches, f, ensure_ascii=False)
         print(f"OK {len(all_matches)} raw matches -> {raw_path}")
+
+    elapsed = time.time() - t_start
+    mins, secs = divmod(int(elapsed), 60)
+    print(f"\nDone in {mins}m {secs}s.")
 
 
 if __name__ == "__main__":

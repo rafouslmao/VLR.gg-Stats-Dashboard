@@ -2783,7 +2783,7 @@ if __name__ == "__main__":
 
     # Always start the schedule watcher — it keeps /api/schedule fresh
     # and auto-triggers a data scrape when a live match finishes
-    print("[startup] Starting schedule watcher…", flush=True)
+    print("[startup] Starting schedule watcher...", flush=True)
     threading.Thread(target=_schedule_watcher, daemon=True).start()
 
     app.run(debug=True, port=8080)
