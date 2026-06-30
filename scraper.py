@@ -70,6 +70,9 @@ def classify_tier(title):
         return "Game Changers"
     if re.search(r"off.{0,3}season|show.?match", t):
         return None
+    # Non-T1 events that would otherwise slip through — block early
+    if re.search(r"national tournament|national competition|college|collegiate|qualifier$", t):
+        return None
     # 2025+ franchise era: "VCT YYYY: Region Stage"
     if t.startswith("vct "):
         return "Tier 1"
@@ -79,12 +82,13 @@ def classify_tier(title):
         if yr and int(yr.group(1)) >= 23:
             if any(r in t for r in ("americas", "emea", "pacific")):
                 return "Tier 1"
-            if "china" in t and "national" not in t:
+            if "china" in t:
                 return "Tier 1"
             if "lock" in t or "masters" in t:
                 return "Tier 1"
-    # Standalone international events (all years)
-    if "valorant champions" in t or "valorant masters" in t:
+    # Standalone international events — use startswith to avoid substring false positives
+    # e.g. "College VALORANT Championship" contains "valorant champions" as substring
+    if t.startswith("valorant champions") or t.startswith("valorant masters"):
         return "Tier 1"
     return None
 
