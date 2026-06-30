@@ -2085,7 +2085,7 @@ def api_events():
         # Collect all unique matches per event (dedup by url)
         ev_matches  = defaultdict(dict)  # event → url → match_entry
         team_records = defaultdict(lambda: defaultdict(
-            lambda: {"wins": 0, "losses": 0, "maps_won": 0, "maps_lost": 0, "name": ""}
+            lambda: {"wins": 0, "losses": 0, "maps_won": 0, "maps_lost": 0, "name": "", "max_round_order": -1}
         ))
 
         for team_id, matches in idx.items():
@@ -2107,6 +2107,11 @@ def api_events():
                 for mp in match.get("maps", []):
                     if mp.get("result") == "W":   d["maps_won"]  += 1
                     elif mp.get("result") == "L": d["maps_lost"] += 1
+                # Track the furthest round this team reached
+                rk = _extract_round_key(url)
+                ro = _ROUND_ORDER.get(rk, -1)
+                if ro > d["max_round_order"]:
+                    d["max_round_order"] = ro
 
                 # Unique match entry — store from winner's perspective
                 if url not in ev_matches[event] or result == "W":
@@ -2193,10 +2198,16 @@ def api_events():
                     "maps_won":   td["maps_won"],
                     "maps_lost":  td["maps_lost"],
                     "map_winpct": round(td["maps_won"] / maps_p * 100, 1) if maps_p else 0,
-                    "is_champion": td["name"] == champion,
+                    "is_champion":    td["name"] == champion,
+                    "max_round_order": td["max_round_order"],
                 })
-            # Champion first, then by wins
-            teams_list.sort(key=lambda t: (0 if t["is_champion"] else 1, -t["wins"], t["losses"]))
+            # Sort by actual placement: champion first, then by furthest round reached,
+            # then wins as tiebreaker (not W-L ratio which misleads in bracket formats)
+            teams_list.sort(key=lambda t: (
+                0 if t["is_champion"] else 1,
+                -t["max_round_order"],
+                -t["wins"],
+            ))
 
             result_list.append({
                 "event":       event_name,
