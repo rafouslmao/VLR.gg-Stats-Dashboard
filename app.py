@@ -47,7 +47,10 @@ def _true_tier_map(year=None):
         if not filtered:
             continue
         has_intl = any(_is_intl_event(ev.get("Event", "")) for ev in filtered)
-        all_gc   = all(ev.get("Tier") == "Game Changers" for ev in filtered if ev.get("Tier"))
+        # Use event name (not stored Tier field) so off-season VCT events
+        # (stored as "Tier 1" but excluded by classify_tier) don't poison all_gc.
+        has_gc   = any("game changers" in ev.get("Event", "").lower() for ev in filtered)
+        all_gc   = has_gc and not has_intl
         if has_intl:
             result[pid] = "Tier 1"
         elif all_gc:
