@@ -1307,8 +1307,12 @@ def api_player_profile():
                     for p in mp.get("players_us", []):
                         if not isinstance(p, dict):
                             continue
+                        ppid  = p.get("id")
                         pname = (p.get("name") or "").strip()
-                        if pname.lower() != name.lower():
+                        if ppid and pid:
+                            if ppid != pid:
+                                continue
+                        elif pname.lower() != name.lower():
                             continue
                         agent = (p.get("agent") or "").strip().title()
                         if passes_pid:

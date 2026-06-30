@@ -516,13 +516,16 @@ def _parse_map_players(game_div):
             cols = row.find_all("td")
             if len(cols) < 7:
                 continue
-            name_el = cols[0].select_one('[style*="font-weight"]')
-            name    = name_el.get_text(strip=True) if name_el else ""
+            name_el  = cols[0].select_one('[style*="font-weight"]')
+            name     = name_el.get_text(strip=True) if name_el else ""
             if not name:
                 continue
-            img   = cols[1].find("img") if len(cols) > 1 else None
-            agent = (img.get("alt") or "").strip().title() if img else ""
+            link_el  = cols[0].select_one('a[href*="/player/"]')
+            pid      = extract_player_id(link_el.get("href", "")) if link_el else None
+            img      = cols[1].find("img") if len(cols) > 1 else None
+            agent    = (img.get("alt") or "").strip().title() if img else ""
             players.append({
+                "id":     pid,
                 "name":   name,
                 "agent":  agent,
                 "rating": get_both(cols[2]),
